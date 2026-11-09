@@ -3,8 +3,8 @@ const $=id=>document.getElementById(id);const money=v=>BRL.format(Number(v||0));
 let DATA=null;let CHARTS={};const tooltip=$('chartTooltip');
 const COLORS={collin:'#C89080',green:'#10B981',yellow:'#F59E0B',red:'#EF4444',blue:'#2563EB',dark:'#111827',muted:'#999999',line:'#eadfdb'};
 // --- CONFIGURAÇÃO DO BANCO DE DADOS (SUPABASE) ---
-const SUPABASE_URL = ''; // Cole a URL do seu Supabase aqui
-const SUPABASE_KEY = ''; // Cole a Anon Key do seu Supabase aqui
+const SUPABASE_URL = '';gnaqurbwkqkaatgiruog
+const SUPABASE_KEY = ''; sb_publishable_i7JsoaO1NXjwwJOgO7MfXQ_VJ-xGrC3
 let supabase = null;
 if (SUPABASE_URL && SUPABASE_KEY && window.supabase) {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
