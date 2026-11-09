@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Collin Professional Dashboard 6.0 Plus</title>
+<meta name="theme-color" content="#C89080">
+<link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <img src="assets/icon.svg" class="login-logo" alt="Collin Professional">
+    <span class="login-eyebrow">Collin Professional</span>
+    <h1>Acesso ao Dashboard</h1>
+    <p>Painel executivo comercial do representante.</p>
+    <form id="loginForm" class="login-form">
+      <label>Usuário<input id="loginUser" autocomplete="username" placeholder="Lucas"></label>
+      <label>Senha<input id="loginPass" type="password" autocomplete="current-password" placeholder="Senha"></label>
+      <button class="btn" type="submit">Entrar</button>
+      <small>Senha padrão: <b>collin2026</b></small>
+    </form>
+  </div>
+</div>
+
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><img src="assets/icon.svg" class="brand-logo" alt="Collin"><div><strong>Collin Professional</strong><span>Dashboard 6.0 Plus</span></div></div>
+  <nav id="nav">
+    <button data-tab="home" class="active">🏠 Visão Geral</button>
+    <button data-tab="clientes">👥 Clientes</button>
+    <button data-tab="bairros">🗺️ Bairros</button>
+    <button data-tab="cobranca">🚨 Cobrança</button>
+    <button data-tab="visitas">📞 Visitas</button>
+    <button data-tab="metas">🎯 Metas</button>
+    <button data-tab="comissao">💰 Comissão</button>
+    <button data-tab="performance">📈 Performance</button>
+    <button data-tab="relatorio">📋 Relatório</button>
+  </nav>
+  <div class="sync-card"><span></span><div><b>Base atualizada</b><small id="syncText">Carregando...</small></div></div>
+</aside>
+
+<main>
+<header class="topbar">
+  <div><span class="eyebrow">Dashboard Executivo</span><h1 id="pageTitle">Collin Professional</h1></div>
+  <div class="top-actions"><button class="btn secondary" id="reloadBtn">Atualizar</button><button class="btn secondary" id="logoutBtn">Sair</button><button class="btn" onclick="window.print()">PDF</button></div>
+</header>
+
+<section class="hero">
+  <div class="hero-left">
+    <img src="assets/icon.svg" class="hero-logo" alt="Collin">
+    <div>
+      <span class="hero-pill">DASHBOARD EXECUTIVO</span>
+      <h2>Collin Professional</h2>
+      <p>Indicadores estratégicos de clientes, recebimentos, metas, comissões e performance comercial.</p>
+    </div>
+  </div>
+  <div class="hero-metrics">
+    <div class="hero-card"><small>Meta Clientes</small><strong id="heroGoal">16/40</strong><div class="progress"><span id="heroProgress"></span></div></div>
+    <div class="hero-card light"><small>Projeção Salarial</small><strong id="heroProjection">R$ 0,00</strong><span>Últimas 4 semanas</span></div>
+  </div>
+</section>
+
+<section id="home" class="tab active">
+  <div class="kpi-grid" id="homeKpis"></div>
+  <div class="grid two">
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Carteira</span><h3>Status dos clientes</h3></div></div><canvas id="statusChart" height="300"></canvas></article>
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Financeiro</span><h3>Carteira x Devedor x Recebido</h3></div></div><canvas id="financeChart" height="300"></canvas></article>
+  </div>
+  <div class="smart-grid" id="smartCards"></div>
+</section>
+
+<section id="clientes" class="tab">
+  <div class="grid two">
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Rank</span><h3>Clientes por bairro</h3></div></div><canvas id="rankClientesChart" height="360"></canvas></article>
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Rank</span><h3>Vendas por bairro</h3></div></div><canvas id="rankVendasChart" height="360"></canvas></article>
+  </div>
+  <article class="panel">
+    <div class="panel-head"><div><span class="eyebrow">CRM</span><h3>Base de clientes</h3></div><input id="searchInput" placeholder="Buscar cliente, bairro ou status..."></div>
+    <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Bairro</th><th>Carteira</th><th>Devedor</th><th>Parcela</th><th>Status</th><th>Ações</th></tr></thead><tbody id="clientRows"></tbody></table></div>
+  </article>
+</section>
+
+<section id="bairros" class="tab">
+  <div class="grid two">
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Decrescente</span><h3>Carteira por bairro</h3></div></div><canvas id="bairroChart" height="420"></canvas></article>
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Comparativo</span><h3>Vendas x Devedor</h3></div></div><canvas id="bairroCompareChart" height="420"></canvas></article>
+  </div>
+  <article class="panel"><div class="panel-head"><div><span class="eyebrow">Ranking</span><h3>Bairros consolidados</h3></div></div><div class="rank-list" id="bairroCards"></div></article>
+</section>
+
+<section id="cobranca" class="tab">
+  <div class="section-intro"><span class="eyebrow">Prioridade comercial</span><h2>Clientes que não pagaram na semana</h2><p>Primeiro Não Pago, depois Cobrar Próxima Semana, ordenado por maior saldo.</p></div>
+  <div class="cards-list" id="cobrancaCards"></div>
+</section>
+
+<section id="visitas" class="tab">
+  <div class="section-intro"><span class="eyebrow">Recompra</span><h2>Clientes para visitar</h2><p>Carteira maior que R$0 e menor que R$150. Clientes zerados ficam fora.</p></div>
+  <div class="cards-list" id="visitaCards"></div>
+</section>
+
+<section id="metas" class="tab">
+  <div class="kpi-grid compact" id="metaCards"></div>
+  <div class="grid two">
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Progresso</span><h3>Metas em %</h3></div></div><canvas id="metasRadarChart" height="380"></canvas></article>
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Recebimento</span><h3>Atual x metas</h3></div></div><canvas id="metasRecebChart" height="380"></canvas></article>
+  </div>
+</section>
+
+<section id="comissao" class="tab">
+  <div class="kpi-grid" id="comissaoKpis"></div>
+  <div class="grid two">
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Últimas 4 semanas</span><h3>Salário meta com a semana atual</h3></div></div><canvas id="comissaoLineChart" height="360"></canvas></article>
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Regra</span><h3>15% + R$375</h3></div></div><canvas id="comissaoRuleChart" height="360"></canvas></article>
+  </div>
+</section>
+
+<section id="performance" class="tab">
+  <div class="kpi-grid" id="performanceKpis"></div>
+  <div class="grid two">
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Evolução semanal</span><h3>Comissão e tendência</h3></div></div><canvas id="performanceChart" height="360"></canvas></article>
+    <article class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow">Projeção final do mês</span><h3>Atual x projeção x meta</h3></div></div><canvas id="projectionChart" height="360"></canvas></article>
+  </div>
+</section>
+
+<section id="relatorio" class="tab">
+  <article class="panel"><div class="panel-head"><div><span class="eyebrow">Relatório</span><h3>Resumo semanal</h3></div><button class="btn" onclick="copyReport()">Copiar</button></div><pre id="reportText"></pre><a id="reportWhats" class="btn whatsapp" target="_blank">Abrir WhatsApp</a></article>
+</section>
+
+<footer><span>Collin Professional Dashboard 6.0 Plus</span><span id="footerUpdate"></span></footer>
+</main>
+</div>
+<div id="toast" class="toast">Copiado</div>
+<div id="chartTooltip" class="chart-tooltip"></div>
+<script src="app.js"></script>
+</body>
+</html>
