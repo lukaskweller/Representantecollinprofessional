@@ -1,4 +1,4 @@
-const CACHE='collin-dashboard-executive-v1';
+const CACHE='collin-dashboard-executive-v2';
 const ASSETS=[
   './',
   './index.html',

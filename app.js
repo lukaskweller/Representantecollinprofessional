@@ -3,8 +3,8 @@ const $=id=>document.getElementById(id);const money=v=>BRL.format(Number(v||0));
 let DATA=null;let CHARTS={};const tooltip=$('chartTooltip');
 const COLORS={collin:'#C89080',green:'#10B981',yellow:'#F59E0B',red:'#EF4444',blue:'#2563EB',dark:'#111827',muted:'#999999',line:'#eadfdb'};
 // --- CONFIGURAÇÃO DO BANCO DE DADOS (SUPABASE) ---
-const SUPABASE_URL = ''; // gnaqurbwkqkaatgiruog
-const SUPABASE_KEY = ''; // sb_publishable_i7JsoaO1NXjwwJOgO7MfXQ_VJ-xGrC3
+const SUPABASE_URL = ''; // Cole a URL do seu Supabase aqui
+const SUPABASE_KEY = ''; // Cole a Anon Key do seu Supabase aqui
 let supabase = null;
 if (SUPABASE_URL && SUPABASE_KEY && window.supabase) {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -39,7 +39,7 @@ async function fetchPlanilha() {
     });
 }
 function safe(v){return String(v==null?'':v)}
-function initLogin(){const screen=$('loginScreen'),form=$('loginForm');if($('loginUser'))$('loginUser').value=localStorage.getItem(LOGIN_USER_KEY)||'Lucas';if(localStorage.getItem(LOGIN_KEY)==='yes'){screen?.classList.add('hide');document.body.classList.remove('locked')}else{screen?.classList.remove('hide');document.body.classList.add('locked')}if(form)form.onsubmit=e=>{e.preventDefault();const user=($('loginUser')?.value||'Lucas').trim();const pass=$('loginPass')?.value||'';const saved=localStorage.getItem(LOGIN_PASS_KEY)||'collin2026';if(pass===saved){localStorage.setItem(LOGIN_KEY,'yes');localStorage.setItem(LOGIN_USER_KEY,user);screen.classList.add('hide');document.body.classList.remove('locked');showToast('Bem-vindo, '+user)}else alert('Senha incorreta.')};if($('logoutBtn'))$('logoutBtn').onclick=()=>{localStorage.removeItem(LOGIN_KEY);location.reload()}}
+function initLogin() { document.getElementById('loginScreen')?.classList.add('hide'); document.body.classList.remove('locked'); if (document.getElementById('logoutBtn')) document.getElementById('logoutBtn').style.display = 'none'; }
 async function load(){try{DATA=await loadLocal();renderAll();syncInBackground()}catch(e){document.body.innerHTML='<main style="padding:24px;font-family:Arial"><h1>Erro ao abrir Dashboard</h1><p>Confirme que data/clientes.json foi enviado ao GitHub.</p></main>';console.error(e)}}
 async function loadLocal(){const r=await fetch('data/clientes.json?v=60-'+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('clientes.json não encontrado');return await r.json()}
 async function syncInBackground(){try{const r=await fetch(SHEET_URL+'&cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('sheet indisponível');const csv=await r.text();const clients=rowsToClients(parseCSV(csv));if(clients.length>=80){DATA=buildData(clients,'Google Sheets AutoSync');renderAll()}}catch(e){console.warn('AutoSync ignorado:',e.message)}}
