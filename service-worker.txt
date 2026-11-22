@@ -1,35 +1,64 @@
-const CACHE='collin-dashboard-executive-v2';
-const ASSETS=[
+const CACHE = 'collin-dashboard-executive-v3';
+
+// Somente a "casca" do app. Dados de clientes NÃO entram aqui.
+const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.webmanifest',
-  './data/clientes.json',
   './assets/icon.svg',
   './assets/icon-192.svg',
-  './assets/icon-512.svg',
-  './assets/lucas-mateus-profile.jpg',
-  './assets/lucas-mateus-avatar.jpg'
+  './assets/icon-512.svg'
 ];
 
-self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE).then(cache =>
+      // Um arquivo faltando não derruba a instalação inteira
+      Promise.all(ASSETS.map(url => cache.add(url).catch(() => null)))
+    )
+  );
   self.skipWaiting();
 });
 
-self.addEventListener('activate',event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>key!==CACHE?caches.delete(key):null))));
-  self.clients.claim();
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    Promise.all([
+      caches.keys().then(keys =>
+        Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))
+      ),
+      self.clients.claim()
+    ])
+  );
 });
 
-self.addEventListener('fetch',event=>{
-  if(event.request.method!=='GET')return;
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+
+  // Outras origens (Supabase, CDN etc.) vão direto para a rede, sem cache
+  if (url.origin !== self.location.origin) return;
+
+  // Dados de clientes: somente rede, nunca cache
+  if (url.pathname.includes('/data/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request).then(response=>{
-      const copy=response.clone();
-      caches.open(CACHE).then(cache=>cache.put(event.request,copy));
-      return response;
-    }).catch(()=>caches.match(event.request).then(cached=>cached||caches.match('./index.html')))
+    fetch(event.request)
+      .then(response => {
+        // Só guarda respostas válidas
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then(cached => cached || caches.match('./index.html'))
+      )
   );
 });
