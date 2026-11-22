@@ -1,15 +1,28 @@
-# 🚀 Atualização Collin Dashboard - Integração com Banco de Dados
+# Collin Dashboard - Integração com Supabase
 
-Esta versão prepara o seu sistema para a transição de Planilhas Google para um Banco de Dados Profissional (Supabase), permitindo multiusuários (Representantes, Gerentes e Diretores) e garantindo a segurança dos dados.
+## Arquivos do projeto
+- `index.html`
+- `styles.css`
+- `app.js`
+- `service-worker.js`
+- `manifest.webmanifest`
+- `database.sql`
+- `assets/` (ícones e imagens)
 
-## Como testar agora mesmo:
-1. Faça o upload dos arquivos `index.html`, `styles.css` e `app.js` para o seu repositório no GitHub.
-2. A aplicação continuará funcionando normalmente com os dados da planilha como "Fallback" (Plano B), para que você não fique sem sistema.
+## Como ativar o banco (Supabase)
+1. Crie um projeto em https://supabase.com.
+2. Em **SQL Editor**, cole o conteúdo de `database.sql` e clique em **Run**.
+   - Se o banco já existir, o script pode ser rodado de novo: ele recria as políticas.
+3. Crie os usuários em **Authentication > Users** e insira o registro correspondente na tabela `perfis` (mesmo `id` do usuário).
+4. Em **Project Settings > API**, copie a `Project URL` e a `anon public key`.
+5. No `app.js`, preencha `SUPABASE_URL` e `SUPABASE_KEY` (linhas 2 e 3).
+6. Envie os arquivos atualizados ao GitHub.
 
-## Como ativar o Novo Banco de Dados (Supabase):
-1. Crie uma conta gratuita em [Supabase](https://supabase.com/).
-2. Crie um novo projeto.
-3. No painel do Supabase, vá em **SQL Editor** e cole todo o conteúdo do arquivo `database.sql` fornecido nesta pasta. Clique em "Run".
-4. Vá em **Project Settings > API**. Copie a `Project URL` e a `anon public key`.
-5. Abra o arquivo `app.js` e cole essas chaves nas variáveis `SUPABASE_URL` e `SUPABASE_KEY` nas linhas 2 e 3.
-6. Envie o `app.js` atualizado para o GitHub. A partir desse momento, o sistema lerá do banco de dados seguro!
+## Segurança
+- Nunca coloque senhas ou chaves `service_role` no front-end.
+- A chave `anon` pode ficar no `app.js`, pois a proteção dos dados vem do RLS.
+- Dados de clientes não são guardados em cache offline.
+
+## Teste rápido
+- Login com um representante: deve ver somente a própria carteira.
+- Login com um gerente: deve ver todas as carteiras.
