@@ -1,23 +1,24 @@
 -- =======================================================
--- SCRIPT DE BANCO DE DADOS SUPABASE - COLLIN DASHBOARD
+-- COLLIN DASHBOARD - SCRIPT CORRIGIDO (v2)
+-- Rodar no SQL Editor do Supabase. Pode ser executado
+-- sobre o banco já criado (remove políticas antigas).
 -- =======================================================
 
--- 1. Criação da Tabela de Usuários (Vinculada ao Auth do Supabase)
-CREATE TABLE perfis (
+-- 1. TABELAS ------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS perfis (
     id UUID REFERENCES auth.users NOT NULL PRIMARY KEY,
     nome TEXT NOT NULL,
     perfil TEXT NOT NULL CHECK (perfil IN ('Representante', 'Gerente', 'Diretor')),
     criado_em TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- 2. Criação da Tabela de Regiões
-CREATE TABLE regioes (
+CREATE TABLE IF NOT EXISTS regioes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nome_regiao TEXT NOT NULL UNIQUE
 );
 
--- 3. Criação da Tabela de Clientes
-CREATE TABLE clientes (
+CREATE TABLE IF NOT EXISTS clientes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nome TEXT NOT NULL,
     id_regiao UUID REFERENCES regioes(id),
@@ -28,8 +29,7 @@ CREATE TABLE clientes (
     observacoes TEXT
 );
 
--- 4. Criação da Tabela de Faturamento/Títulos
-CREATE TABLE faturamento_titulos (
+CREATE TABLE IF NOT EXISTS faturamento_titulos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     id_cliente UUID REFERENCES clientes(id) ON DELETE CASCADE,
     saldo_carteira NUMERIC DEFAULT 0,
@@ -42,25 +42,88 @@ CREATE TABLE faturamento_titulos (
     atualizado_em TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- 5. Row Level Security (RLS) - SEGURANÇA
-ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
+-- 2. RLS ATIVO ----------------------------------------------
+
+ALTER TABLE perfis            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE regioes           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clientes          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faturamento_titulos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE perfis ENABLE ROW LEVEL SECURITY;
 
--- Política: Representante só vê seus próprios clientes
-CREATE POLICY "Representantes veem seus clientes" ON clientes
-    FOR SELECT USING (
-        auth.uid() = id_representante 
-        OR 
-        EXISTS (SELECT 1 FROM perfis WHERE id = auth.uid() AND perfil IN ('Gerente', 'Diretor'))
-    );
+-- 3. FUNÇÃO DE PAPEL (evita recursão e falha de RLS) -------
 
--- Política: Faturamento segue a mesma regra do cliente
-CREATE POLICY "Representantes veem faturamento de seus clientes" ON faturamento_titulos
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM clientes 
-            WHERE clientes.id = faturamento_titulos.id_cliente 
-            AND (clientes.id_representante = auth.uid() OR EXISTS (SELECT 1 FROM perfis WHERE id = auth.uid() AND perfil IN ('Gerente', 'Diretor')))
-        )
+CREATE OR REPLACE FUNCTION public.is_gerente_ou_diretor()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM perfis
+        WHERE id = auth.uid() AND perfil IN ('Gerente', 'Diretor')
     );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_gerente_ou_diretor() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_gerente_ou_diretor() TO authenticated;
+
+-- 4. LIMPA POLÍTICAS ANTIGAS --------------------------------
+
+DROP POLICY IF EXISTS "Representantes veem seus clientes" ON clientes;
+DROP POLICY IF EXISTS "Representantes veem faturamento de seus clientes" ON faturamento_titulos;
+
+-- 5. PERFIS -------------------------------------------------
+-- Cada usuário lê o próprio perfil; gerente/diretor leem todos.
+
+CREATE POLICY "Usuario le proprio perfil" ON perfis
+    FOR SELECT USING (auth.uid() = id OR public.is_gerente_ou_diretor());
+
+-- 6. REGIÕES ------------------------------------------------
+
+CREATE POLICY "Todos autenticados leem regioes" ON regioes
+    FOR SELECT TO authenticated USING (true);
+
+-- 7. CLIENTES -----------------------------------------------
+-- Leitura: dono da carteira ou gerente/diretor.
+-- Escrita: dono da carteira ou gerente/diretor.
+
+CREATE POLICY "Ler clientes" ON clientes
+    FOR SELECT TO authenticated
+    USING (auth.uid() = id_representante OR public.is_gerente_ou_diretor());
+
+CREATE POLICY "Inserir clientes" ON clientes
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = id_representante OR public.is_gerente_ou_diretor());
+
+CREATE POLICY "Atualizar clientes" ON clientes
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = id_representante OR public.is_gerente_ou_diretor())
+    WITH CHECK (auth.uid() = id_representante OR public.is_gerente_ou_diretor());
+
+CREATE POLICY "Excluir clientes" ON clientes
+    FOR DELETE TO authenticated
+    USING (public.is_gerente_ou_diretor());
+
+-- 8. FATURAMENTO / TÍTULOS ----------------------------------
+-- Segue a regra do cliente.
+
+CREATE POLICY "Ler faturamento" ON faturamento_titulos
+    FOR SELECT TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM clientes c
+        WHERE c.id = faturamento_titulos.id_cliente
+          AND (c.id_representante = auth.uid() OR public.is_gerente_ou_diretor())
+    ));
+
+CREATE POLICY "Escrever faturamento" ON faturamento_titulos
+    FOR ALL TO authenticated
+    USING (EXISTS (
+        SELECT 1 FROM clientes c
+        WHERE c.id = faturamento_titulos.id_cliente
+          AND (c.id_representante = auth.uid() OR public.is_gerente_ou_diretor())
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM clientes c
+        WHERE c.id = faturamento_titulos.id_cliente
+          AND (c.id_representante = auth.uid() OR public.is_gerente_ou_diretor())
+    ));
